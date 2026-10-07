@@ -20,23 +20,22 @@ confirmed **powered off**.
 
 ```mermaid
 flowchart TD
-    T([Manual trigger<br/><i>entity_type = vm</i>]) --> A["0 · Power Off VM<br/>ACPI"]
+    T([Manual trigger · entity_type = vm]) --> A["0 · Power Off VM (ACPI)"]
     A --> B["1 · Wait for VM to power off"]
     B --> C["2 · Lookup VM power state"]
-    C --> D{"3 · Branch — if<br/>power_state == &quot;OFF&quot; ?"}
-    D -- Yes --> E["4 · Mailtrap<br/>maintenance started"]
+    C --> D{"3 · Branch — if<br/>power_state is OFF ?"}
+    D -- Yes --> E["4 · Mailtrap — maintenance started"]
     E --> F["5 · REST API — GET VM"]
     F --> G["6 · String Patch — drop /status"]
-    G --> H["7 · String Patch — enable APC<br/>→ Intel Skylake"]
+    G --> H["7 · String Patch — enable APC → Intel Skylake"]
     H --> I["8 · REST API — PUT VM"]
-    I --> J["9 · Mailtrap<br/>maintenance completed"]
+    I --> J["9 · Mailtrap — maintenance completed"]
     J --> K["10 · Power On VM"]
     K --> Z([Done])
     D -- No --> L["11 · Branch — else"]
-    L --> M["12 · Mailtrap<br/>maintenance failed"]
+    L --> M["12 · Mailtrap — maintenance failed"]
     M --> Y([End — VM unchanged])
 
-    classDef host fill:#4b00aa,color:#fff,stroke:#4b00aa;
     classDef ok   fill:#0b8a3e,color:#fff,stroke:#0b8a3e;
     classDef bad  fill:#b00020,color:#fff,stroke:#b00020;
     classDef term fill:#eceef1,color:#333,stroke:#c9ccd1;
