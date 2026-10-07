@@ -7,7 +7,9 @@ confirmed **powered off**.
 
 - **File:** [`playbook.json`](playbook.json)
 - **Trigger:** Manual (`entity_type = vm`) — runs **once per selected VM**. Select
-  several VMs (or a whole *category*) to batch them.
+  several VMs at run time to batch them (you can filter the selection by a
+  *category* in the Prism Central run dialog, but the playbook itself does not use
+  categories).
 - **Prism Central API used:** v3 VM read/update (`/api/nutanix/v3/vms`) and the
   VMM v4 CPU model reference (`cpuModel.extId`).
 - **Notifications:** Mailtrap Email API (`https://send.api.mailtrap.io/api/send`).
@@ -27,13 +29,12 @@ confirmed **powered off**.
 | 6 | String Patch — drop `/status` | Removes the read-only `status` block (v3 PUT rejects it) |
 | 7 | String Patch — enable APC | Replaces `apc_config` with the chosen CPU model |
 | 8 | REST API — PUT VM | Applies the change |
-| 9 | REST API — list VMs in category | Gathers the maintenance scope (VMs tagged with the category) |
-| 10 | Mailtrap — maintenance completed | "Completed" email + list of VMs in scope |
-| 11 | Power On VM | Powers the VM back on |
-| 12 | **Branch — else** | Reached only if the VM did **not** reach OFF |
-| 13 | Mailtrap — maintenance failed | "Failed" email; the VM is left unchanged |
+| 9 | Mailtrap — maintenance completed | "Completed" email |
+| 10 | Power On VM | Powers the VM back on |
+| 11 | **Branch — else** | Reached only if the VM did **not** reach OFF |
+| 12 | Mailtrap — maintenance failed | "Failed" email; the VM is left unchanged |
 
-If the VM cannot be powered off, execution jumps to the **else** branch (12 → 13)
+If the VM cannot be powered off, execution jumps to the **else** branch (11 → 12)
 and the CPU change is skipped.
 
 ---
@@ -42,16 +43,8 @@ and the CPU change is skipped.
 
 1. **Prism Central 7.x** with **X-Play** enabled and API access (`admin` or a
    user that can manage action rules and VMs).
-2. A **category** to mark the VMs that are in scope. The playbook assumes
-   `APC:enable` (key `APC`, value `enable`). Create it if needed:
-   ```bash
-   curl -k -u admin:CHANGEME -H 'Content-Type: application/json' \
-     -X POST "https://<PRISM_HOST>:9440/api/prism/v4.0/config/categories" \
-     -d '{"key":"APC","value":"enable"}'
-   ```
-   Then tag the target VMs with `APC:enable`.
-3. A **Mailtrap account** and an **API token** with sending access.
-4. The **CPU model UUID** you want to pin (see the next section).
+2. A **Mailtrap account** and an **API token** with sending access.
+3. The **CPU model UUID** you want to pin (see the next section).
 
 ---
 
@@ -62,18 +55,16 @@ values (before import, or edit the playbook in Prism Central afterwards):
 
 | Placeholder | Where | Replace with |
 |---|---|---|
-| `<PRISM_HOST>` | REST API action URLs + Mailtrap-independent calls | Your Prism Central FQDN or IP |
-| `<PC_PASSWORD>` | "REST API — GET/PUT/list" actions (basic auth) | Prism Central password for your API user |
-| `<MAILTRAP_API_TOKEN>` | Both Mailtrap actions (`token`, bearer auth) | Your Mailtrap API token |
-| `<FROM@YOUR-VERIFIED-DOMAIN>` | Both Mailtrap actions `from.email` | A sender on a **verified** Mailtrap sending domain (or Mailtrap's demo domain `hello@demomailtrap.co` for a quick test) |
-| `<RECIPIENT@EXAMPLE.COM>` | Both Mailtrap actions `to[0].email` | Who receives the notifications |
+| `<PRISM_HOST>` | "REST API — GET/PUT" action URLs | Your Prism Central FQDN or IP |
+| `<PC_PASSWORD>` | "REST API — GET/PUT" actions (basic auth) | Prism Central password for your API user |
+| `<MAILTRAP_API_TOKEN>` | The three Mailtrap actions (`token`, bearer auth) | Your Mailtrap API token |
+| `<FROM@YOUR-VERIFIED-DOMAIN>` | Mailtrap actions `from.email` | A sender on a **verified** Mailtrap sending domain (or Mailtrap's demo domain `hello@demomailtrap.co` for a quick test) |
+| `<RECIPIENT@EXAMPLE.COM>` | Mailtrap actions `to[0].email` | Who receives the notifications |
 | `admin` | "REST API" actions `username` | Your Prism Central API user (default `admin`) |
 
 Also review:
 
 - **CPU model** (`cpu_model_reference.uuid` / `name`) in the "String Patch — enable APC" action.
-- **Category key** in the "REST API — list VMs in category" action
-  (`"filter": "category_name==APC"` — note: **key only**, not `key:value`).
 - **Wait duration** (`wait_duration`, default `45` seconds) in the "Wait" action.
 - **Maintenance window** text in the email bodies.
 
@@ -142,8 +133,7 @@ curl -k -u admin:CHANGEME \
 Then, in Prism Central → **Operations → Playbooks**, open
 *Enable APC (change processor) on VMs*, review/edit it, and enable it.
 
-**Run it:** select the VM(s) — or filter by the `APC:enable` category — and click
-**Run**. The playbook executes once per VM.
+**Run it:** select the VM(s) and click **Run**. The playbook executes once per VM.
 
 ---
 
@@ -160,11 +150,6 @@ Then, in Prism Central → **Operations → Playbooks**, open
   **0-based index of the action in the `action_list`**. The Branch condition must
   only reference actions earlier in its branch chain.
 - **`cpuModel.name` alone is rejected** — always pass `extId`.
-- **Completion email** embeds the category listing (`{{action[9].response_body}}`).
-  The v3 list response is large JSON; if your X-Play build does not JSON-escape
-  dynamic values, that email may fail (the playbook still completes because the
-  Mailtrap actions are set to *continue on failure*). If so, replace it with a
-  short scope summary (count + category) instead.
 - **Power-off is ACPI + a fixed wait.** If the guest lacks tools or ignores ACPI,
   increase the wait or switch the mechanism to `hard`. The branch (step 3) makes
   the "not off" path explicit and safe.
