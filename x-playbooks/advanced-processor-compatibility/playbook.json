@@ -1,0 +1,339 @@
+{
+  "api_version": "3.1",
+  "metadata": {
+    "kind": "action_rule"
+  },
+  "spec": {
+    "resources": {
+      "action_list": [
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "vm_power_off_action",
+            "uuid": "4d4e54a3-bc20-44e8-4420-9f670f28812b"
+          },
+          "child_action_uuids": [
+            "892ce89c-b3bf-468e-bc80-0244d68ca783"
+          ],
+          "description": "",
+          "display_name": "Power Off VM",
+          "input_parameter_values": {
+            "power_state_mechanism": "acpi",
+            "target_vm": "{{trigger[0].source_entity_info}}"
+          },
+          "instance_uuid": "07a84b64-895d-42d0-af64-ffa0f23d556f",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "wait_for_duration",
+            "uuid": "70c3fe96-59e1-4be6-7803-667a99a5c4c7"
+          },
+          "child_action_uuids": [
+            "debdef93-be63-4f14-8f98-4bfb5e216540"
+          ],
+          "description": "",
+          "display_name": "Wait for VM to power off",
+          "input_parameter_values": {
+            "post_check_trigger_validity": "false",
+            "stop_after_time": "false",
+            "wait_duration": "45"
+          },
+          "instance_uuid": "892ce89c-b3bf-468e-bc80-0244d68ca783",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "vm_lookup_action",
+            "uuid": "a14faf68-a25b-424a-5286-0750dfbeab07"
+          },
+          "child_action_uuids": [
+            "fe2d3e13-a481-4cac-9bfb-3b1ddabd5015",
+            "bca549d5-9ffc-4112-9119-da5bed6e7de7"
+          ],
+          "description": "",
+          "display_name": "Lookup VM power state",
+          "input_parameter_values": {
+            "target_vm": "{{trigger[0].source_entity_info}}"
+          },
+          "instance_uuid": "debdef93-be63-4f14-8f98-4bfb5e216540",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "branch_action",
+            "uuid": "28078e84-02ee-4526-4e7a-277268a0c546"
+          },
+          "child_action_uuids": [
+            "493c033e-e58a-4f55-a792-5c1a9fab42d8"
+          ],
+          "description": "",
+          "display_name": "Branch - off",
+          "input_parameter_values": {
+            "branch": "[\"off\"]",
+            "condition": "[\"if\"]",
+            "conditional_expression": "[\"{{action[2].power_state}} == \\\"OFF\\\"\"]",
+            "values": "[\"{{action[2].power_state}}\"]"
+          },
+          "instance_uuid": "fe2d3e13-a481-4cac-9bfb-3b1ddabd5015",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "rest_api_action",
+            "uuid": "7e33ec08-3826-4328-7a77-8c883b5f8e7e"
+          },
+          "child_action_uuids": [
+            "df008ad9-6000-493c-96de-74eb78e9e333"
+          ],
+          "description": "",
+          "display_name": "Mailtrap - maintenance started",
+          "input_parameter_values": {
+            "auth_type": "bearer_token",
+            "headers": "Content-Type: application/json\n",
+            "method": "POST",
+            "request_body": "{\"from\": {\"email\": \"<FROM@YOUR-VERIFIED-DOMAIN>\", \"name\": \"Nutanix X-Play\"}, \"to\": [{\"email\": \"<RECIPIENT@EXAMPLE.COM>\"}], \"subject\": \"Maintenance window started: {{trigger[0].source_entity_info.name}}\", \"text\": \"Maintenance window STARTED for VM {{trigger[0].source_entity_info.name}} ({{trigger[0].source_entity_info.uuid}}). VM is powered off; setting CPU compatibility to Intel Skylake, then powering on.\", \"html\": \"<div style=\\\"font-family:Segoe UI,Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden\\\"><div style=\\\"background:#4b00aa;color:#fff;padding:18px 24px\\\"><div style=\\\"font-size:12px;letter-spacing:2px;opacity:.85\\\">X-PLAY MAINTENANCE WINDOW</div><h2 style=\\\"margin:4px 0 0\\\">Maintenance window started</h2></div><div style=\\\"padding:18px 24px\\\"><table style=\\\"width:100%;border-collapse:collapse\\\"><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">VM</td><td style=\\\"padding:6px 0;color:#222\\\"><b>{{trigger[0].source_entity_info.name}}</b></td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">UUID</td><td style=\\\"padding:6px 0;color:#222\\\"><code>{{trigger[0].source_entity_info.uuid}}</code></td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Change</td><td style=\\\"padding:6px 0;color:#222\\\">CPU compatibility &rarr; <b>Intel Skylake</b> (Advanced Processor Compatibility)</td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Category</td><td style=\\\"padding:6px 0;color:#222\\\">APC:enable</td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Status</td><td style=\\\"padding:6px 0;color:#222\\\">VM confirmed powered off &mdash; applying the change, then powering back on.</td></tr></table></div><div style=\\\"background:#f5f6f8;padding:12px 24px;color:#8a8a8a;font-size:12px\\\">Window: on-demand &nbsp;\\u00b7&nbsp; automated notification by Nutanix X-Play</div></div>\", \"category\": \"X-Play APC\"}",
+            "token": "<MAILTRAP_API_TOKEN>",
+            "url": "https://send.api.mailtrap.io/api/send",
+            "use_credential_store": "false"
+          },
+          "instance_uuid": "493c033e-e58a-4f55-a792-5c1a9fab42d8",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "rest_api_action",
+            "uuid": "7e33ec08-3826-4328-7a77-8c883b5f8e7e"
+          },
+          "child_action_uuids": [
+            "12d80281-7eec-4fe2-98a6-4e1d4675b234"
+          ],
+          "description": "",
+          "display_name": "REST API - GET VM",
+          "input_parameter_values": {
+            "auth_type": "basic_auth",
+            "headers": "Accept: application/json\n",
+            "method": "GET",
+            "password": "<PC_PASSWORD>",
+            "url": "https://<PRISM_HOST>:9440/api/nutanix/v3/vms/{{trigger[0].source_entity_info.uuid}}",
+            "use_credential_store": "false",
+            "username": "admin"
+          },
+          "instance_uuid": "df008ad9-6000-493c-96de-74eb78e9e333",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "string_patch",
+            "uuid": "9eeed05e-e6e8-4ae0-5eb6-a56f48689cb1"
+          },
+          "child_action_uuids": [
+            "f1843941-cc73-41b5-a771-d410837b85df"
+          ],
+          "description": "",
+          "display_name": "String Patch - drop status",
+          "input_parameter_values": {
+            "json_path": "/status",
+            "operation": "remove",
+            "source_string": "{{action[5].response_body}}",
+            "template_type": "json"
+          },
+          "instance_uuid": "12d80281-7eec-4fe2-98a6-4e1d4675b234",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "string_patch",
+            "uuid": "9eeed05e-e6e8-4ae0-5eb6-a56f48689cb1"
+          },
+          "child_action_uuids": [
+            "5c7f8d50-131e-4256-bd85-ee801128c0f8"
+          ],
+          "description": "",
+          "display_name": "String Patch - enable APC (Intel Skylake)",
+          "input_parameter_values": {
+            "json_path": "/spec/resources/apc_config",
+            "operation": "replace",
+            "source_string": "{{action[6].output_value}}",
+            "template_type": "json",
+            "value_string": "{\"enabled\": true, \"cpu_model_reference\": {\"kind\": \"cpu_model\", \"uuid\": \"315e63e4-d549-5a45-affd-c766032de984\", \"name\": \"Intel Skylake\"}}"
+          },
+          "instance_uuid": "f1843941-cc73-41b5-a771-d410837b85df",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "rest_api_action",
+            "uuid": "7e33ec08-3826-4328-7a77-8c883b5f8e7e"
+          },
+          "child_action_uuids": [
+            "7b152a3c-71e1-4414-b784-44de41177b02"
+          ],
+          "description": "",
+          "display_name": "REST API - PUT VM",
+          "input_parameter_values": {
+            "auth_type": "basic_auth",
+            "headers": "Content-Type: application/json\n",
+            "method": "PUT",
+            "password": "<PC_PASSWORD>",
+            "request_body": "{{action[7].output_value}}",
+            "url": "https://<PRISM_HOST>:9440/api/nutanix/v3/vms/{{trigger[0].source_entity_info.uuid}}",
+            "use_credential_store": "false",
+            "username": "admin"
+          },
+          "instance_uuid": "5c7f8d50-131e-4256-bd85-ee801128c0f8",
+          "max_retries": 2,
+          "should_continue_on_failure": false
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "rest_api_action",
+            "uuid": "7e33ec08-3826-4328-7a77-8c883b5f8e7e"
+          },
+          "child_action_uuids": [
+            "1872ad3d-9557-405f-a177-1b8e30f42182"
+          ],
+          "description": "",
+          "display_name": "REST API - list VMs in category",
+          "input_parameter_values": {
+            "auth_type": "basic_auth",
+            "headers": "Content-Type: application/json\n",
+            "method": "POST",
+            "password": "<PC_PASSWORD>",
+            "request_body": "{\"kind\": \"vm\", \"length\": 500, \"filter\": \"category_name==APC\"}",
+            "url": "https://<PRISM_HOST>:9440/api/nutanix/v3/vms/list",
+            "use_credential_store": "false",
+            "username": "admin"
+          },
+          "instance_uuid": "7b152a3c-71e1-4414-b784-44de41177b02",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "rest_api_action",
+            "uuid": "7e33ec08-3826-4328-7a77-8c883b5f8e7e"
+          },
+          "child_action_uuids": [
+            "c81a1888-f982-4c1a-9858-a61677d26e40"
+          ],
+          "description": "",
+          "display_name": "Mailtrap - maintenance completed",
+          "input_parameter_values": {
+            "auth_type": "bearer_token",
+            "headers": "Content-Type: application/json\n",
+            "method": "POST",
+            "request_body": "{\"from\": {\"email\": \"<FROM@YOUR-VERIFIED-DOMAIN>\", \"name\": \"Nutanix X-Play\"}, \"to\": [{\"email\": \"<RECIPIENT@EXAMPLE.COM>\"}], \"subject\": \"Maintenance window completed: {{trigger[0].source_entity_info.name}}\", \"text\": \"Maintenance window COMPLETED for VM {{trigger[0].source_entity_info.name}} ({{trigger[0].source_entity_info.uuid}}): CPU compatibility set to Intel Skylake. VMs in category APC:enable:\\n{{action[9].response_body}}\", \"html\": \"<div style=\\\"font-family:Segoe UI,Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden\\\"><div style=\\\"background:#0b8a3e;color:#fff;padding:18px 24px\\\"><div style=\\\"font-size:12px;letter-spacing:2px;opacity:.85\\\">X-PLAY MAINTENANCE WINDOW</div><h2 style=\\\"margin:4px 0 0\\\">Maintenance window completed</h2></div><div style=\\\"padding:18px 24px\\\"><table style=\\\"width:100%;border-collapse:collapse\\\"><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">VM</td><td style=\\\"padding:6px 0;color:#222\\\"><b>{{trigger[0].source_entity_info.name}}</b></td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">UUID</td><td style=\\\"padding:6px 0;color:#222\\\"><code>{{trigger[0].source_entity_info.uuid}}</code></td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Result</td><td style=\\\"padding:6px 0;color:#222\\\">CPU compatibility set to <b>Intel Skylake</b>; VM powered back on.</td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Maintenance scope (APC:enable)</td><td style=\\\"padding:6px 0;color:#222\\\"><pre style=\\\"white-space:pre-wrap;font-size:11px;color:#333\\\">{{action[9].response_body}}</pre></td></tr></table></div><div style=\\\"background:#f5f6f8;padding:12px 24px;color:#8a8a8a;font-size:12px\\\">Window: on-demand &nbsp;\\u00b7&nbsp; automated notification by Nutanix X-Play</div></div>\", \"category\": \"X-Play APC\"}",
+            "token": "<MAILTRAP_API_TOKEN>",
+            "url": "https://send.api.mailtrap.io/api/send",
+            "use_credential_store": "false"
+          },
+          "instance_uuid": "1872ad3d-9557-405f-a177-1b8e30f42182",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "vm_power_on_action",
+            "uuid": "752ed27d-3dd1-4947-5e59-843198ee7c11"
+          },
+          "child_action_uuids": [],
+          "description": "",
+          "display_name": "Power On VM",
+          "input_parameter_values": {
+            "target_vm": "{{trigger[0].source_entity_info}}"
+          },
+          "instance_uuid": "c81a1888-f982-4c1a-9858-a61677d26e40",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "branch_action",
+            "uuid": "28078e84-02ee-4526-4e7a-277268a0c546"
+          },
+          "child_action_uuids": [
+            "fa7b805b-9fba-470d-bea3-606317a3c8cf"
+          ],
+          "description": "",
+          "display_name": "Branch - else-not-off",
+          "input_parameter_values": {
+            "branch": "[\"else-not-off\"]",
+            "condition": "[\"else\"]",
+            "conditional_expression": "[\"\"]",
+            "values": "[\"{{action[2].power_state}}\"]"
+          },
+          "instance_uuid": "bca549d5-9ffc-4112-9119-da5bed6e7de7",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        },
+        {
+          "action_type_reference": {
+            "kind": "action_type",
+            "name": "rest_api_action",
+            "uuid": "7e33ec08-3826-4328-7a77-8c883b5f8e7e"
+          },
+          "child_action_uuids": [],
+          "description": "",
+          "display_name": "Mailtrap - maintenance failed",
+          "input_parameter_values": {
+            "auth_type": "bearer_token",
+            "headers": "Content-Type: application/json\n",
+            "method": "POST",
+            "request_body": "{\"from\": {\"email\": \"<FROM@YOUR-VERIFIED-DOMAIN>\", \"name\": \"Nutanix X-Play\"}, \"to\": [{\"email\": \"<RECIPIENT@EXAMPLE.COM>\"}], \"subject\": \"Maintenance window FAILED: {{trigger[0].source_entity_info.name}} could not power off\", \"text\": \"Maintenance window FAILED for VM {{trigger[0].source_entity_info.name}} ({{trigger[0].source_entity_info.uuid}}): it did not reach OFF (current state: {{action[2].power_state}}). Skipped the CPU change.\", \"html\": \"<div style=\\\"font-family:Segoe UI,Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e6e6e6;border-radius:12px;overflow:hidden\\\"><div style=\\\"background:#b00020;color:#fff;padding:18px 24px\\\"><div style=\\\"font-size:12px;letter-spacing:2px;opacity:.85\\\">X-PLAY MAINTENANCE WINDOW</div><h2 style=\\\"margin:4px 0 0\\\">Maintenance window FAILED</h2></div><div style=\\\"padding:18px 24px\\\"><table style=\\\"width:100%;border-collapse:collapse\\\"><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">VM</td><td style=\\\"padding:6px 0;color:#222\\\"><b>{{trigger[0].source_entity_info.name}}</b></td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">UUID</td><td style=\\\"padding:6px 0;color:#222\\\"><code>{{trigger[0].source_entity_info.uuid}}</code></td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Reason</td><td style=\\\"padding:6px 0;color:#222\\\">VM did not reach power state <b>OFF</b> in time (current: <b>{{action[2].power_state}}</b>).</td></tr><tr><td style=\\\"padding:6px 0;color:#666;vertical-align:top\\\">Action taken</td><td style=\\\"padding:6px 0;color:#222\\\">Skipped the CPU change and left the VM unchanged.</td></tr></table></div><div style=\\\"background:#f5f6f8;padding:12px 24px;color:#8a8a8a;font-size:12px\\\">Window: on-demand &nbsp;\\u00b7&nbsp; automated notification by Nutanix X-Play</div></div>\", \"category\": \"X-Play APC\"}",
+            "token": "<MAILTRAP_API_TOKEN>",
+            "url": "https://send.api.mailtrap.io/api/send",
+            "use_credential_store": "false"
+          },
+          "instance_uuid": "fa7b805b-9fba-470d-bea3-606317a3c8cf",
+          "max_retries": 2,
+          "should_continue_on_failure": true
+        }
+      ],
+      "description": "Manual X-Play maintenance window: power off, verify OFF, enable APC (Intel Skylake), Mailtrap notifications, power on.",
+      "execution_user_reference": {
+        "kind": "user",
+        "name": "TRIGGERING_USER",
+        "uuid": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      },
+      "is_enabled": true,
+      "name": "Enable APC (change processor) on VMs",
+      "post_execution_action_list": [],
+      "should_validate": true,
+      "trigger_list": [
+        {
+          "action_trigger_type_reference": {
+            "kind": "action_trigger_type",
+            "name": "manual_trigger",
+            "uuid": "5f50b7a7-dc72-4f41-48af-16145dc37e9a"
+          },
+          "display_name": "Manual",
+          "input_parameter_values": {
+            "entity_type": "vm"
+          },
+          "instance_uuid": "f9a976ae-e159-47d3-8428-8e59e9f3f30d"
+        }
+      ]
+    }
+  }
+}

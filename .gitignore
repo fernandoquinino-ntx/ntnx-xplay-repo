@@ -1,0 +1,21 @@
+# Local helper scripts — not part of the shared reference playbooks.
+/enable_apc.sh
+/deploy_apc_playbook.sh
+/*.sh
+
+# Secrets and environment-specific configuration. Never commit these.
+.env
+*.env
+!*.env.example
+*.secret
+secrets/
+
+# Local scratch / dumps (raw playbook dumps, captured API responses, etc.).
+/apc-playbook.json
+*.local.json
+
+# Tooling / editor / OS noise.
+.opencode/
+.DS_Store
+*.swp
+*~
