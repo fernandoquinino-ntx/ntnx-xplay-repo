@@ -18,21 +18,32 @@ confirmed **powered off**.
 
 ## Flow
 
-| # | Action | Purpose |
-|---|--------|---------|
-| 0 | Power Off VM | ACPI power-off of the target VM |
-| 1 | Wait for VM to power off | Pause so the guest can shut down |
-| 2 | Lookup VM power state | Reads `power_state` into the action output |
-| 3 | **Branch — if** `{{action[2].power_state}} == "OFF"` | Only continue when the VM is actually off |
-| 4 | Mailtrap — maintenance started | "Started" email (only after OFF is confirmed) |
-| 5 | REST API — GET VM | Fetches the full VM object (v3) |
-| 6 | String Patch — drop `/status` | Removes the read-only `status` block (v3 PUT rejects it) |
-| 7 | String Patch — enable APC | Replaces `apc_config` with the chosen CPU model |
-| 8 | REST API — PUT VM | Applies the change |
-| 9 | Mailtrap — maintenance completed | "Completed" email |
-| 10 | Power On VM | Powers the VM back on |
-| 11 | **Branch — else** | Reached only if the VM did **not** reach OFF |
-| 12 | Mailtrap — maintenance failed | "Failed" email; the VM is left unchanged |
+```mermaid
+flowchart TD
+    T([Manual trigger<br/><i>entity_type = vm</i>]) --> A["0 · Power Off VM<br/>ACPI"]
+    A --> B["1 · Wait for VM to power off"]
+    B --> C["2 · Lookup VM power state"]
+    C --> D{"3 · Branch — if<br/>power_state == &quot;OFF&quot; ?"}
+    D -- Yes --> E["4 · Mailtrap<br/>maintenance started"]
+    E --> F["5 · REST API — GET VM"]
+    F --> G["6 · String Patch — drop /status"]
+    G --> H["7 · String Patch — enable APC<br/>→ Intel Skylake"]
+    H --> I["8 · REST API — PUT VM"]
+    I --> J["9 · Mailtrap<br/>maintenance completed"]
+    J --> K["10 · Power On VM"]
+    K --> Z([Done])
+    D -- No --> L["11 · Branch — else"]
+    L --> M["12 · Mailtrap<br/>maintenance failed"]
+    M --> Y([End — VM unchanged])
+
+    classDef host fill:#4b00aa,color:#fff,stroke:#4b00aa;
+    classDef ok   fill:#0b8a3e,color:#fff,stroke:#0b8a3e;
+    classDef bad  fill:#b00020,color:#fff,stroke:#b00020;
+    classDef term fill:#eceef1,color:#333,stroke:#c9ccd1;
+    class T,Z,Y term;
+    class E,F,G,H,I,J,K ok;
+    class D,L,M bad;
+```
 
 If the VM cannot be powered off, execution jumps to the **else** branch (11 → 12)
 and the CPU change is skipped.
